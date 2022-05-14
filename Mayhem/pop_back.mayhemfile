@@ -1,0 +1,5 @@
+project: tendril
+target: pop_back
+
+cmds:
+  - cmd: /pop_back

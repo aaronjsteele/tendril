@@ -1,0 +1,5 @@
+project: tendril
+target: string_bytes_eq_tendril
+
+cmds:
+  - cmd: /string_bytes_eq_tendril

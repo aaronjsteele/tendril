@@ -1,0 +1,5 @@
+project: tendril
+target: pop_front
+
+cmds:
+  - cmd: /pop_front

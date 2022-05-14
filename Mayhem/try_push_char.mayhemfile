@@ -1,0 +1,5 @@
+project: tendril
+target: try_push_char
+
+cmds:
+  - cmd: /try_push_char

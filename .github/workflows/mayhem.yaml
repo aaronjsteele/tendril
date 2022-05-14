@@ -1,0 +1,93 @@
+name: Mayhem
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PROJECTNAME: tendril
+  POP_BACK_MAYHEMFILE: Mayhem/pop_back.mayhemfile
+  POP_FRONT_MAYHEMFILE: Mayhem/pop_front.mayhemfile
+  STRING_BYTES_EQ_TENDRIL_MAYHEMFILE: Mayhem/string_bytes_eq_tendril.mayhemfile
+  SUBTENDRIL_MAYHEMFILE: Mayhem/subtendril.mayhemfile
+  TRY_PUSH_CHAR_MAYHEMFILE: Mayhem/try_push_char.mayhemfile
+
+jobs:
+  build:
+    name: '${{ matrix.os }} shared=${{ matrix.shared }} ${{ matrix.build_type }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        shared: [false]
+        build_type: [Release]
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: Dockerfile.mayhem
+
+      - name: Start analysis for pop_back
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --project ${{ env.PROJECTNAME }} --file ${{ env.POP_BACK_MAYHEMFILE }}
+          sarif-output: sarif
+      
+      - name: Start analysis for pop_front
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --project ${{ env.PROJECTNAME }} --file ${{ env.POP_FRONT_MAYHEMFILE }}
+          sarif-output: sarif
+      
+      - name: Start analysis for string_bytes_eq_tendril
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --project ${{ env.PROJECTNAME }} --file ${{ env.STRING_BYTES_EQ_TENDRIL_MAYHEMFILE }}
+          sarif-output: sarif
+      
+      - name: Start analysis for subtendril
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --project ${{ env.PROJECTNAME }} --file ${{ env.SUBTENDRIL_MAYHEMFILE }}
+          sarif-output: sarif
+      
+      - name: Start analysis for try_push_char
+        uses: ForAllSecure/mcode-action@v1
+        with:
+          mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
+          args: --image ${{ steps.meta.outputs.tags }} --project ${{ env.PROJECTNAME }} --file ${{ env.TRY_PUSH_CHAR_MAYHEMFILE }}
+          sarif-output: sarif
+
+      - name: Upload SARIF file(s)
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: sarif

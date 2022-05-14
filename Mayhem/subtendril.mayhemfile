@@ -1,0 +1,5 @@
+project: tendril
+target: subtendril
+
+cmds:
+  - cmd: /subtendril
